@@ -100,7 +100,7 @@
     if (amount) {
       document.getElementById('amount-display').textContent =
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-          .format(parseInt(amount));
+          .format(parseInt(amount / 100));
     }
 
     // Verificar que llego el clientSecret
