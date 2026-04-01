@@ -114,11 +114,7 @@
     const amountParam = params.get('amount');
     const currency = (params.get('currency') || 'usd').toUpperCase();
 
-    // ==================== DEBUG TEMPORAL ====================
-    document.getElementById('debug-amount').textContent = amountParam || 'null';
-    document.getElementById('debug-currency').textContent = currency;
-    document.getElementById('debug-info').style.display = 'block';   // Muestra el debug
-    // =======================================================
+   
 
     // Mostrar monto formateado correctamente
     if (amountParam) {
