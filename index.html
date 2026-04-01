@@ -68,21 +68,39 @@
       font-size: 14px;
     }
     #form-container { display: none; }
+
+    /* Estilo para el debug temporal */
+    #debug-info {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 15px 0;
+      font-size: 13px;
+      color: #333;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Pago Seguro &#128274;</h2>
     <div class="amount" id="amount-display">$0.00</div>
+    
+    <!-- Debug temporal: muestra el valor raw que recibe -->
+    <div id="debug-info">
+      <strong>Debug - Valor recibido:</strong><br>
+      amount = <span id="debug-amount">---</span><br>
+      currency = <span id="debug-currency">---</span>
+    </div>
 
     <div id="loading">Cargando formulario de pago...</div>
-
     <div id="form-container">
       <div id="payment-element"></div>
       <button id="submit-btn">Pagar ahora</button>
       <div id="error-message"></div>
-      <div id="success-message">&#9989; &#161;Pago exitoso! Gracias por tu compra.</div>
-      <p class="lock-icon">&#128274; Pago procesado con Stripe. Tus datos estan seguros.</p>
+      <div id="success-message">&#9989; ¡Pago exitoso! Gracias por tu compra.</div>
+      <p class="lock-icon">&#128274; Pago procesado con Stripe. Tus datos están seguros.</p>
     </div>
   </div>
 
@@ -90,28 +108,46 @@
     const STRIPE_PK = 'pk_test_51LLPZSAyqyVgaUlbXbj2SLEI5GSm4ja4tiz7mJB2gUokpRMQOJx2BeUqpTYp5xE5uwXd3PEjDcwjFi0NwME9hRgE005Ajk8wNW';
     const stripe = Stripe(STRIPE_PK);
 
-    // Leer parametros de la URL
+    // Leer parámetros de la URL
     const params = new URLSearchParams(window.location.search);
     const clientSecret = params.get('client_secret');
-    const amount       = params.get('amount');
-    const currency     = params.get('currency') || 'usd';
+    const amountParam = params.get('amount');
+    const currency = (params.get('currency') || 'usd').toUpperCase();
 
-    // Mostrar monto formateado
-    if (amount) {
-      document.getElementById('amount-display').textContent =
-        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-          .format(parseInt(amount / 100));
+    // ==================== DEBUG TEMPORAL ====================
+    document.getElementById('debug-amount').textContent = amountParam || 'null';
+    document.getElementById('debug-currency').textContent = currency;
+    document.getElementById('debug-info').style.display = 'block';   // Muestra el debug
+    // =======================================================
+
+    // Mostrar monto formateado correctamente
+    if (amountParam) {
+      const amountCents = parseInt(amountParam, 10);
+      
+      if (!isNaN(amountCents) && amountCents > 0) {
+        const amountDollars = amountCents / 100;
+        
+        document.getElementById('amount-display').textContent = 
+          new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          }).format(amountDollars);
+      } else {
+        document.getElementById('amount-display').textContent = '$0.00';
+      }
     }
 
-    // Verificar que llego el clientSecret
+    // Verificar que llegó el clientSecret
     if (!clientSecret) {
       document.getElementById('loading').textContent =
-        'Error: no se recibio el client_secret. Vuelve a intentarlo.';
+        'Error: no se recibió el client_secret. Vuelve a intentarlo.';
     } else {
       // Inicializar Stripe Elements
       const elements = stripe.elements({ clientSecret });
       const paymentElement = elements.create('payment');
-
+      
       paymentElement.on('ready', () => {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('form-container').style.display = 'block';
@@ -119,9 +155,9 @@
 
       paymentElement.mount('#payment-element');
 
-      // Manejar envio del formulario
+      // Manejar envío del formulario
       document.getElementById('submit-btn').addEventListener('click', async () => {
-        const btn    = document.getElementById('submit-btn');
+        const btn = document.getElementById('submit-btn');
         const errDiv = document.getElementById('error-message');
 
         btn.disabled = true;
@@ -144,8 +180,8 @@
           document.getElementById('success-message').style.display = 'block';
           btn.style.display = 'none';
 
-          // Notificar a FlutterFlow
           window.parent.postMessage({ type: 'PAYMENT_SUCCESS', clientSecret }, '*');
+          
           if (window.flutter_inappwebview) {
             window.flutter_inappwebview.callHandler('paymentSuccess', { clientSecret });
           }
